@@ -348,22 +348,225 @@ document.addEventListener("click", (e) => {
 /* ==========================================================================
    APLICATIVO: SOLICITAÇÕES
    ========================================================================== */
+
+// Variáveis de controle locais para o funcionamento do app ativo
+let npcAtual = null;
+let perguntasRestantes = 0;
+
+// 1. Função para sortear 4 a 5 NPCs aleatórios no início do dia
+function iniciarFilaDoDia() {
+    const todosIds = Object.keys(characterDatabase);
+    
+    // Sorteia uma quantidade entre 4 e 5
+    const quantidade = Math.floor(Math.random() * 2) + 4; 
+    
+    // Embaralha os IDs disponíveis e pega a quantidade sorteada
+    const embaralhado = todosIds.sort(() => 0.5 - Math.random());
+    gameState.filaDoDia = embaralhado.slice(0, quantidade);
+}
+
+// 2. Cria ou abre a janela do aplicativo de solicitações
 function criarJanelaSolicitacoes() {
-    criarJanelaSimples("Solicitações", `
-        <div class="solicitacoes-layout">
-            <div class="sol-docs">
-                <div class="doc-placeholder">📄 Nenhum documento selecionado</div>
-            </div>
-            <div class="sol-npc">
-                <div class="npc-sprite">👤</div>
-            </div>
-            <div class="sol-dialogo">
-                <div class="dialogo-texto">Aguardando solicitações do portão...</div>
-                <div class="dialogo-opcoes">
-                    <button disabled>Aceitar</button>
-                    <button disabled>Recusar</button>
+    // Se a fila do dia estiver completamente vazia (primeira vez abrindo o app no dia), gera uma nova
+    if (gameState.filaDoDia.length === 0 && gameState.insideObservatory.length === 0 && gameState.rejectedOutside.length === 0) {
+        iniciarFilaDoDia();
+    }
+
+    const idJanela = criarJanelaSimples("Controle de Acesso - Portão", `
+        <div class="solicitacoes-layout" style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+            
+            <!-- MESA DE TRABALHO (ITENS E SPRITE) -->
+            <div style="display: flex; flex: 1; min-height: 200px; border-bottom: 1px solid #26422c;">
+                <!-- CANTO ESQUERDO: ITEM TRAZIDO -->
+                <div id="sol-item-container" style="width: 50%; border-right: 1px solid #26422c; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0b100c; padding: 10px;">
+                    <div id="sol-item-visor" style="font-size: 50px; filter: drop-shadow(0 0 10px rgba(141,255,154,0.2));"></div>
+                    <small id="sol-item-nome" style="font-size: 10px; opacity: 0.6; margin-top: 5px; text-align:center;"></small>
+                </div>
+                
+                <!-- CANTO DIREITO: FOTO/SPRITE DO CADASTRADO -->
+                <div style="width: 50%; display: flex; align-items: center; justify-content: center; background: #0f1411; position: relative;">
+                    <div id="sol-npc-sprite" style="font-size: 80px; filter: drop-shadow(0 0 15px rgba(141,255,154,0.3)); animation: pulse 2s infinite;">👤</div>
+                    <div style="position: absolute; top: 10px; right: 10px; font-size: 10px; background: #1a1010; color: #ff8d8d; padding: 2px 6px; border: 1px solid #422626;" id="sol-badge-status">DESCONHECIDO</div>
                 </div>
             </div>
+
+            <!-- ENVELOPE DE DIÁLOGO E INTERAÇÕES -->
+            <div style="background: #0d120e; padding: 15px; display: flex; flex-direction: column; gap: 10px;">
+                <!-- CAIXA DE TEXTO DO DIÁLOGO -->
+                <div id="sol-dialogo-texto" style="font-size: 12px; line-height: 1.4; min-height: 55px; color: #c4ffd0; border-left: 3px solid #385e40; padding-left: 10px; white-space: pre-line;">
+                    Aguardando sinal do portão externo...
+                </div>
+
+                <!-- PAINEL DE PERGUNTAS / INVESTIGAÇÃO -->
+                <div id="sol-painel-perguntas" style="display: flex; flex-direction: column; gap: 5px;">
+                    <!-- Botões de perguntas injetados via JS -->
+                </div>
+
+                <!-- BOTÕES DE DECISÃO FINAL -->
+                <div style="display: flex; gap: 10px; margin-top: 5px; border-top: 1px dashed #26422c; padding-top: 10px;">
+                    <button id="btn-liberar-portao" disabled style="flex: 1; background: #15331b; border: 1px solid #385e40; color: #8dff9a; padding: 8px; cursor: not-allowed; text-transform: uppercase; font-weight: bold; font-size: 11px;">Liberar Portão</button>
+                    <button id="btn-mandar-embora" disabled style="flex: 1; background: #331515; border: 1px solid #5e3838; color: #ff8d8d; padding: 8px; cursor: not-allowed; text-transform: uppercase; font-weight: bold; font-size: 11px;">Mandar Embora</button>
+                </div>
+            </div>
+
         </div>
     `, "solicitacoes");
+
+    // Prepara e joga na tela o primeiro NPC da fila
+    chamarProximoNpc();
 }
+
+// 3. Puxa o próximo NPC da fila e atualiza os elementos visuais na tela
+function chamarProximoNpc() {
+    const proximoId = gameState.filaDoDia[0];
+
+    // Se a fila acabou, limpa a mesa
+    if (!proximoId) {
+        document.getElementById("sol-npc-sprite").innerText = "❌";
+        document.getElementById("sol-dialogo-texto").innerText = `[ SISTEMA DE CONTROLE ]\nTodos os candidatos da fila de hoje foram processados.\nUse o terminal para encerrar o expediente.`;
+        document.getElementById("sol-item-visor").innerText = "";
+        document.getElementById("sol-item-nome").innerText = "";
+        document.getElementById("sol-painel-perguntas").innerHTML = "";
+        document.getElementById("btn-liberar-portao").disabled = true;
+        document.getElementById("btn-mandar-embora").disabled = true;
+        return;
+    }
+
+    // Busca as propriedades brutas no banco de dados
+    npcAtual = characterDatabase[proximoId];
+    perguntasRestantes = npcAtual.perguntas.length;
+
+    // Atualiza Foto (Canto Superior Direito)
+    document.getElementById("sol-npc-sprite").innerText = npcAtual.sprite;
+    document.getElementById("sol-badge-status").innerText = "IDENTIDADE RETIDA";
+
+    // Atualiza Documento/Item (Canto Superior Esquerdo)
+    const itemContainer = document.getElementById("sol-item-container");
+    const itemVisor = document.getElementById("sol-item-visor");
+    const itemNome = document.getElementById("sol-item-nome");
+
+    if (npcAtual.itensTrazidos && npcAtual.itensTrazidos.length > 0) {
+        const idItem = npcAtual.itensTrazidos[0];
+        const dadosItem = itemsDatabase[idItem];
+        if (dadosItem) {
+            itemVisor.innerText = dadosItem.icone;
+            itemNome.innerText = `[ ESCANEADO ]\n${dadosItem.nome}`;
+            
+            // AUTOMÁTICO: Ao carregar o item na mesa, ele passa a constar no app de Arquivos
+            if (!gameState.unlockedFiles.includes(idItem)) {
+                gameState.unlockedFiles.push(idItem);
+            }
+        }
+    } else {
+        itemVisor.innerText = "📁";
+        itemNome.innerText = "Nenhum documento na bandeja";
+    }
+
+    // Atualiza Diálogo Inicial (Embaixo)
+    document.getElementById("sol-dialogo-texto").innerText = `"${npcAtual.dialogoInicial}"`;
+
+    // Reseta e bloqueia os botões de decisão até terminar o interrogatório
+    const btnAceitar = document.getElementById("btn-liberar-portao");
+    const btnRecusar = document.getElementById("btn-mandar-embora");
+    btnAceitar.disabled = true;
+    btnAceitar.style.cursor = "not-allowed";
+    btnRecusar.disabled = true;
+    btnRecusar.style.cursor = "not-allowed";
+
+    // Gera os botões de perguntas dinamicamente
+    renderizarBotoesPerguntas();
+}
+
+// 4. Cria os botões com as perguntas que podem ser feitas
+function renderizarBotoesPerguntas() {
+    const container = document.getElementById("sol-painel-perguntas");
+    container.innerHTML = "";
+
+    if (perguntasRestantes > 0) {
+        npcAtual.perguntas.forEach((pergunta, index) => {
+            const btn = document.createElement("button");
+            btn.style.cssText = "background: #111a13; border: 1px solid #233827; color: #a6d9b0; padding: 5px 10px; font-size: 10px; text-align: left; cursor: pointer; transition: 0.1s;";
+            btn.innerText = `💬 ${pergunta.textoBotao}`;
+            
+            // Hover effect simples via JS
+            btn.onmouseover = () => btn.style.background = "#1b2b1f";
+            btn.onmouseout = () => btn.style.background = "#111a13";
+
+            btn.addEventListener("click", () => {
+                // Altera o texto do diálogo com a resposta do NPC
+                document.getElementById("sol-dialogo-texto").innerText = `Você: ${pergunta.textoBotao}\n\nNPC: "${pergunta.respostaNpc}"`;
+                
+                // Remove essa pergunta específica para que não possa ser feita de novo
+                npcAtual.perguntas.splice(index, 1);
+                perguntasRestantes--;
+
+                // Atualiza a lista de botões
+                renderizarBotoesPerguntas();
+            });
+
+            container.appendChild(btn);
+        });
+    } else {
+        // Quando esgotam as perguntas, libera os botões de decisão final!
+        container.innerHTML = `<div style="font-size:9px; color:#8dff9a; opacity:0.6; text-align:center; padding: 2px;">[ INTERROGATÓRIO CONCLUÍDO - TOME UMA DECISÃO ]</div>`;
+        
+        const btnAceitar = document.getElementById("btn-liberar-portao");
+        const btnRecusar = document.getElementById("btn-mandar-embora");
+        
+        btnAceitar.disabled = false;
+        btnAceitar.style.cursor = "pointer";
+        btnRecusar.disabled = false;
+        btnRecusar.style.cursor = "pointer";
+    }
+}
+
+// 5. Configura e ouve as ações definitivas do jogador (Liberar / Mandar Embora)
+document.addEventListener("click", (e) => {
+    if (!npcAtual) return;
+
+    // SE CLICOU EM LIBERAR PORTÃO (ACEITO)
+    if (e.target.id === "btn-liberar-portao") {
+        document.getElementById("sol-dialogo-texto").innerText = `[ PORTÃO ABERTO ]\n\nNPC: "${npcAtual.reacaoAceito}"`;
+        
+        // Adiciona à base interna revelando o Nome Real
+        gameState.insideObservatory.push({
+            id: npcAtual.id,
+            nome: npcAtual.nomeReal,
+            sprite: npcAtual.sprite,
+            seguranca: npcAtual.seguranca
+        });
+
+        concluirResolucaoNpc();
+    }
+
+    // SE CLICOU EM MANDAR EMBORA (RECUSADO)
+    if (e.target.id === "btn-mandar-embora") {
+        document.getElementById("sol-dialogo-texto").innerText = `[ ACESSO NEGADO ]\n\nNPC: "${npcAtual.reacaoRecusado}"`;
+        
+        // Adiciona à lista de excluídos lá fora (apenas some do banco ativo)
+        gameState.rejectedOutside.push(npcAtual.id);
+
+        concluirResolucaoNpc();
+    }
+});
+
+// Remove o NPC processado do topo da fila e aguarda 3 segundos para carregar o próximo
+function concluirResolucaoNpc() {
+    // Bloqueia cliques repetidos nos botões durante a transição
+    document.getElementById("btn-liberar-portao").disabled = true;
+    document.getElementById("btn-mandar-embora").disabled = true;
+    document.getElementById("sol-painel-perguntas").innerHTML = "";
+
+    // Remove do topo do array da fila
+    gameState.filaDoDia.shift(); 
+
+    // Pausa dramática de 3 segundos para o jogador ler o desfecho da fala dele, antes do próximo chegar
+    setTimeout(() => {
+        chamarProximoNpc();
+    }, 3200);
+}
+
+/* ==========================================================================
+   GERENCIADOR DE CLIQUES GLOBAIS (E-MAILS E ARQUIVOS)
+   ========================================================================== */
+// ... O resto dos ouvintes e seletores de e-mail/arquivos continuam exatamente iguais abaixo ...
