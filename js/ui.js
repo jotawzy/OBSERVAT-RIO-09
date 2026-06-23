@@ -386,3 +386,62 @@ function criarJanelaSolicitacoes() {
 
     return idJanela;
 }
+
+/* ARQUIVOS */
+function abrirArquivos(){
+
+    const conteudo = `
+        <div class="arquivos-layout">
+
+            <!-- LISTA ESQUERDA -->
+            <div class="arquivos-lista" id="arquivos-lista">
+
+                <div class="arquivos-placeholder">
+                    📁 Nenhum arquivo carregado
+                </div>
+
+            </div>
+
+            <!-- PAINEL DIREITO -->
+            <div class="arquivos-detalhe" id="arquivos-detalhe">
+
+                <div class="detalhe-placeholder">
+                    Selecione um arquivo para visualizar
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+    criarJanelaSimples("Arquivos", conteudo, "arquivos");
+
+    prepararArquivosUI();
+}
+
+function prepararArquivosUI(){
+
+    const lista = document.getElementById("arquivos-lista");
+    const detalhe = document.getElementById("arquivos-detalhe");
+
+    if (!lista || !detalhe) return;
+
+    // reset futuro (quando dados chegarem)
+    lista.dataset.ready = "true";
+    detalhe.dataset.ready = "true";
+}
+
+document.addEventListener("click", (e) => {
+
+    const item = e.target.closest(".arquivo-item");
+    if (!item) return;
+
+    const lista = document.getElementById("arquivos-detalhe");
+    if (!lista) return;
+
+    lista.innerHTML = `
+        <div class="detalhe-vazio">
+            🔒 Nenhum conteúdo carregado ainda
+        </div>
+    `;
+});

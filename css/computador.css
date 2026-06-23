@@ -307,3 +307,49 @@ EMAIL SYSTEM
     display: flex;
     flex-direction: column;
 }
+
+.arquivos-layout{
+    display: flex;
+    height: 100%;
+    background: #08110a;
+    color: #c6ffd0;
+    font-family: monospace;
+}
+
+/* LISTA */
+.arquivos-lista{
+    width: 35%;
+    border-right: 1px solid #26422c;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+/* DETALHE */
+.arquivos-detalhe{
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+/* PLACEHOLDERS */
+.arquivos-placeholder,
+.detalhe-placeholder,
+.detalhe-vazio{
+    opacity: 0.5;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* ITEM FUTURO (já pronto pra usar depois) */
+.arquivo-item{
+    padding: 8px;
+    margin-bottom: 6px;
+    border: 1px solid #1f2a24;
+    background: #0f1411;
+    cursor: pointer;
+}
+
+.arquivo-item:hover{
+    background: #16201b;
+}
