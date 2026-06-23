@@ -295,11 +295,15 @@ EMAIL SYSTEM
 }
 
 .fullscreen{
-    position: flex;
+    position: absolute !important;
     top: 0;
     left: 0;
     right: 0;
     bottom: 60px;
-    width: 100%;
-    height: calc(100% - 60px);
+    
+    width: auto !important;
+    height: auto !important;
+
+    display: flex;
+    flex-direction: column;
 }

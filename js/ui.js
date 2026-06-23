@@ -64,8 +64,8 @@ function aplicarLayoutJanela(janela, tipoApp) {
         janela.style.top = "0";
         janela.style.left = "0";
         janela.style.right = "0";
-        janela.style.bottom = "60px"; // 🔥 RESPEITA A TASKBAR
-        janela.style.width = "100%";
+        janela.style.bottom = "60px";
+        janela.style.width = "auto";
         janela.style.height = "auto";
     } else {
         janela.classList.remove("fullscreen");
