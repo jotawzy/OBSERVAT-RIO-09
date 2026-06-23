@@ -61,16 +61,28 @@ function criarJanelaSimples(titulo, conteudo, tipoApp = "emails"){
     const idJanela = Date.now();
     janelas[idJanela] = janela;
 
-    if (appsFullscreen?.[tipoApp]) {
+    const isFull = appsFullscreen?.[tipoApp];
+
+if (isFull) {
     janela.classList.add("fullscreen");
-    janela.style.top = "0";
-    janela.style.left = "0";
-    janela.style.width = "100%";
-    janela.style.height = "100%";
+
+    janela.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    `;
 } else {
     janela.classList.remove("fullscreen");
-    janela.style.top = "60px";
-    janela.style.left = "60px";
+
+    janela.style.cssText = `
+        position: absolute;
+        top: 60px;
+        left: 60px;
+        width: min(900px, 92vw);
+        height: min(600px, 75vh);
+    `;
 }
 
     janela.style.zIndex = zIndex++;
@@ -335,8 +347,9 @@ function criarJanelaSolicitacoes(){
         <div class="barra-janela">
             <span>Solicitações</span>
             <div class="botoes-janela">
-                <button class="fechar">X</button>
-            </div>
+            <button class="minimizar">_</button>
+            <button class="fechar">X</button>
+        </div>
         </div>
 
         <div class="solicitacoes-layout">
@@ -368,6 +381,11 @@ function criarJanelaSolicitacoes(){
     areaJanelas.appendChild(janela);
 
     const btnFechar = janela.querySelector(".fechar");
+    const btnMin = janela.querySelector(".minimizar");
+
+btnMin.addEventListener("click", () => {
+    janela.style.display = "none";
+});
 
 btnFechar.addEventListener("click", () => {
 
