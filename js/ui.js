@@ -53,7 +53,7 @@ document.getElementById("app-registros").addEventListener("click", () =>
 JANELA BASE
 ========================= */
 
-function criarJanelaSimples(titulo, conteudo, tipoApp = "emails"){
+function criarJanelaSimples(titulo, conteudo, tipoApp = "emails") {
 
     const janela = document.createElement("div");
     janela.classList.add("janela");
@@ -63,27 +63,25 @@ function criarJanelaSimples(titulo, conteudo, tipoApp = "emails"){
 
     const isFull = appsFullscreen?.[tipoApp];
 
-if (isFull) {
-    janela.classList.add("fullscreen");
+    if (isFull) {
+        janela.classList.add("fullscreen");
 
-    janela.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-    `;
-} else {
-    janela.classList.remove("fullscreen");
+        janela.style.position = "absolute";
+        janela.style.top = "0";
+        janela.style.left = "0";
+        janela.style.right = "0";
+        janela.style.bottom = "0";
+        janela.style.width = "100%";
+        janela.style.height = "100%";
+    } else {
+        janela.classList.remove("fullscreen");
 
-    janela.style.cssText = `
-        position: absolute;
-        top: 60px;
-        left: 60px;
-        width: min(900px, 92vw);
-        height: min(600px, 75vh);
-    `;
-}
+        janela.style.position = "absolute";
+        janela.style.top = "60px";
+        janela.style.left = "60px";
+        janela.style.width = "min(900px, 92vw)";
+        janela.style.height = "min(600px, 75vh)";
+    }
 
     janela.style.zIndex = zIndex++;
 
@@ -107,7 +105,6 @@ if (isFull) {
     const btnMin = janela.querySelector(".minimizar");
 
     btnFechar.addEventListener("click", () => {
-
         janela.remove();
         delete janelas[idJanela];
 
@@ -129,10 +126,10 @@ if (isFull) {
 }
 
 /* =========================
-DRAG (PC + MOBILE)
+DRAG
 ========================= */
 
-function ativarDrag(janela, barra){
+function ativarDrag(janela, barra) {
 
     let offsetX = 0;
     let offsetY = 0;
@@ -141,19 +138,19 @@ function ativarDrag(janela, barra){
 
     barra.addEventListener("pointerdown", (e) => {
 
-    const botao = e.target.closest("button");
-    if (botao) return;
+        const botao = e.target.closest("button");
+        if (botao) return;
 
-    arrastando = true;
-    pointerId = e.pointerId;
+        arrastando = true;
+        pointerId = e.pointerId;
 
-    offsetX = e.clientX - janela.offsetLeft;
-    offsetY = e.clientY - janela.offsetTop;
+        offsetX = e.clientX - janela.offsetLeft;
+        offsetY = e.clientY - janela.offsetTop;
 
-    focarJanela(janela);
+        focarJanela(janela);
 
-    barra.setPointerCapture(pointerId);
-});
+        barra.setPointerCapture(pointerId);
+    });
 
     barra.addEventListener("pointermove", (e) => {
 
@@ -163,7 +160,7 @@ function ativarDrag(janela, barra){
         janela.style.top = (e.clientY - offsetY) + "px";
     });
 
-    function parar(e){
+    function parar(e) {
         if (e.pointerId !== pointerId) return;
         arrastando = false;
         pointerId = null;
@@ -178,7 +175,7 @@ function ativarDrag(janela, barra){
 FOCO
 ========================= */
 
-function focarJanela(janela){
+function focarJanela(janela) {
     janela.style.zIndex = zIndex++;
 }
 
@@ -186,7 +183,7 @@ function focarJanela(janela){
 TASKBAR
 ========================= */
 
-function criarTaskbarIcone(id, tipoApp){
+function criarTaskbarIcone(id, tipoApp) {
 
     const icon = document.createElement("div");
     icon.classList.add("taskbar-icone");
@@ -205,7 +202,6 @@ function criarTaskbarIcone(id, tipoApp){
     });
 
     taskIcons[id] = icon;
-
     taskbar.appendChild(icon);
 }
 
@@ -241,11 +237,10 @@ const Emails = [
 ];
 
 /* =========================
-RENDER EMAILS
+EMAILS UI
 ========================= */
 
-function renderEmails(){
-
+function renderEmails() {
     return Emails.map(email => `
         <div class="email-item ${email.lido ? "lido" : "nao-lido"}" data-id="${email.id}">
             <div class="email-topo">
@@ -259,11 +254,7 @@ function renderEmails(){
     `).join("");
 }
 
-/* =========================
-ABRIR EMAILS
-========================= */
-
-function abrirEmails(){
+function abrirEmails() {
 
     const conteudo = `
         <div class="email-layout">
@@ -284,11 +275,7 @@ function abrirEmails(){
     document.addEventListener("click", emailClickHandler);
 }
 
-/* =========================
-CLICK EMAIL
-========================= */
-
-function emailClickHandler(e){
+function emailClickHandler(e) {
 
     const item = e.target.closest(".email-item");
     if (!item) return;
@@ -300,11 +287,7 @@ function emailClickHandler(e){
     if (lista) lista.innerHTML = renderEmails();
 }
 
-/* =========================
-ABRIR EMAIL
-========================= */
-
-function abrirEmail(id){
+function abrirEmail(id) {
 
     const email = Emails.find(e => e.id === id);
     if (!email) return;
@@ -331,28 +314,27 @@ function abrirEmail(id){
     `;
 }
 
-// HUD SOLICITAÇÕES 
+/* =========================
+SOLICITAÇÕES (CORRIGIDO)
+========================= */
 
-function criarJanelaSolicitacoes(){
+function criarJanelaSolicitacoes() {
 
-    const janela = document.createElement("div");
-    janela.classList.add("janela", "fullscreen");
+    const idJanela = criarJanelaSimples("Solicitações", "", "solicitacoes");
 
-    const idJanela = Date.now();
-    janelas[idJanela] = janela;
-
-    janela.style.zIndex = zIndex++;
+    const janela = janelas[idJanela];
+    if (!janela) return;
 
     janela.innerHTML = `
         <div class="barra-janela">
             <span>Solicitações</span>
             <div class="botoes-janela">
-            <button class="minimizar">_</button>
-            <button class="fechar">X</button>
-        </div>
+                <button class="minimizar">_</button>
+                <button class="fechar">X</button>
+            </div>
         </div>
 
-        <div class="solicitacoes-layout">
+        <div class="conteudo-janela solicitacoes-layout">
 
             <div class="sol-docs">
                 <div class="doc-placeholder">
@@ -378,27 +360,22 @@ function criarJanelaSolicitacoes(){
         </div>
     `;
 
-    areaJanelas.appendChild(janela);
-
     const btnFechar = janela.querySelector(".fechar");
     const btnMin = janela.querySelector(".minimizar");
 
-btnMin.addEventListener("click", () => {
-    janela.style.display = "none";
-});
+    btnMin.addEventListener("click", () => {
+        janela.style.display = "none";
+    });
 
-btnFechar.addEventListener("click", () => {
+    btnFechar.addEventListener("click", () => {
+        janela.remove();
+        delete janelas[idJanela];
 
-    janela.remove();
-    delete janelas[idJanela];
-
-    if (taskIcons[idJanela]) {
-        taskIcons[idJanela].remove();
-        delete taskIcons[idJanela];
-    }
-});
-
-    criarTaskbarIcone(idJanela, "solicitacoes");
+        if (taskIcons[idJanela]) {
+            taskIcons[idJanela].remove();
+            delete taskIcons[idJanela];
+        }
+    });
 
     return idJanela;
 }
