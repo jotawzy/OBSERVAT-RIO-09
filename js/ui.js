@@ -472,10 +472,14 @@ document.addEventListener("click", (e) => {
 // ==========================================
 // FLUXO DO NPC E TERMINAL
 // ==========================================
-    function chamarProximoNpc() {
+    // ==========================================
+// GERENCIAMENTO DA FILA, NPCS E TERMINAL
+// ==========================================
+
+function chamarProximoNpc() {
     const proximoId = gameState.filaDoDia[0];
 
-    // MODO TERMINAL DE PC ANTIGO (Se não houver mais ninguém na fila)
+    // MODO TERMINAL DE PC ANTIGO
     if (!proximoId) {
         const layout = document.querySelector(".solicitacoes-layout");
         layout.innerHTML = `
@@ -493,10 +497,7 @@ document.addEventListener("click", (e) => {
 
     // MODO INSPEÇÃO NORMAL
     const npcOriginal = characterDatabase[proximoId];
-    npcAtual = { 
-        ...npcOriginal, 
-        perguntas: [...npcOriginal.perguntas] 
-    };
+    npcAtual = { ...npcOriginal, perguntas: [...npcOriginal.perguntas] };
 
     document.getElementById("sol-npc-sprite").setAttribute("icon", npcAtual.sprite);
     document.getElementById("sol-badge-status").innerText = "RETIDO";
@@ -506,150 +507,24 @@ document.addEventListener("click", (e) => {
 
     if (npcAtual.itensTrazidos && npcAtual.itensTrazidos.length > 0) {
         const idItem = npcAtual.itensTrazidos[0];
-        const dadosItem = documentsDatabase[idItem]; // Usando o seu database correto
+        const dadosItem = documentsDatabase[idItem]; // USANDO DATABASE CORRETO
         if (dadosItem) {
             itemVisor.setAttribute("icon", dadosItem.icone);
             itemNome.innerText = dadosItem.nome;
-            if (!gameState.unlockedFiles.includes(idItem)) {
-                gameState.unlockedFiles.push(idItem);
-            }
+            if (!gameState.unlockedFiles.includes(idItem)) gameState.unlockedFiles.push(idItem);
         }
     } else {
         itemVisor.setAttribute("icon", "pixelarticons:folder");
         itemNome.innerText = "NENHUM DOCUMENTO";
     }
 
-    // Dispara o diálogo inicial e renderiza os botões após a animação de texto
     exibirDialogo(`"${npcAtual.dialogoInicial}"`, renderizarPainelDinamico);
 }
 
-function processarEscolhaPergunta(pergunta) {
-    npcAtual.perguntas.splice(0, 2);
-    // Toca o diálogo da resposta. Quando terminar de clicar, renderiza os botões novamente.
-    exibirDialogo(`Você: ${pergunta.textoBotao}\n\nNPC: "${pergunta.respostaNpc}"`, renderizarPainelDinamico);
-}
-
-function processarDecisaoFinal(acao) {
-    const painel = document.getElementById("sol-painel-interacao");
-    painel.innerHTML = ""; 
-
-    let mensagemDesfecho = "";
-    if (acao === "liberar") {
-        mensagemDesfecho = `[ PORTÃO MAGNÉTICO ABERTO ]\n\nNPC: "${npcAtual.reacaoAceito}"`;
-        gameState.insideObservatory.push({ id: npcAtual.id, nome: npcAtual.nomeReal, sprite: npcAtual.sprite, seguranca: npcAtual.seguranca });
-    } else {
-        mensagemDesfecho = `[ DIRETRIZ DE ACESSO NEGADA ]\n\nNPC: "${npcAtual.reacaoRecusado}"`;
-        gameState.rejectedOutside.push(npcAtual.id);
-    }
-
-    gameState.filaDoDia.shift(); 
-    
-    // O jogador lê o desfecho no seu próprio tempo. Só puxa o próximo NPC quando ele clicar até o fim.
-    exibirDialogo(mensagemDesfecho, chamarProximoNpc);
-}
-
-// ==========================================
-// ANIMAÇÃO DO TERMINAL (FIM DE TURNO)
-// ==========================================
-async function iniciarAnimacaoTerminal() {
-    const logs = document.getElementById("terminal-logs");
-    const delay = ms => new Promise(res => setTimeout(res, ms));
-
-    logs.innerHTML += "<div>> INICIALIZANDO CONSOLE CENTRAL... <span class='cursor-blink'></span></div>";
-    await delay(1200);
-    logs.innerHTML = logs.innerHTML.replace("<span class='cursor-blink'></span>", "");
-    logs.innerHTML += "<div>> CARREGANDO MÓDULOS DE VÍDEO... [ <span style='color:#a6d9b0'>OK</span> ]</div>";
-    await delay(400);
-    logs.innerHTML += "<div>> PORTÕES MAGNÉTICOS... [ <span style='color:#ff8d8d'>TRANCADOS</span> ]</div>";
-    await delay(600);
-    logs.innerHTML += "<div><br>> Expediente externo encerrado. Aguardando comando de consolidação de turno.</div>";
-    
-    renderizarInputTerminal(logs, delay);
-}
-
-function renderizarInputTerminal(logs, delay) {
-    const idUnico = Date.now();
-    logs.innerHTML += `
-        <div style="display: flex; margin-top: 15px; align-items: center;" id="linha-input-${idUnico}">
-            <span>OBSERVATORIO_9_$ </span>
-            <input type="text" id="terminal-input-${idUnico}" autofocus autocomplete="off" spellcheck="false" style="background: transparent; border: none; color: #8dff9a; font-family: monospace; font-size: 14px; outline: none; margin-left: 10px; flex: 1;">
-        </div>
-    `;
-
-    const input = document.getElementById(`terminal-input-${idUnico}`);
-    // Garante que o input mantenha o foco
-    document.getElementById("tela-terminal").onclick = () => input.focus();
-    input.focus();
-    
-    input.addEventListener("keydown", async (e) => {
-        if (e.key === "Enter") {
-            const cmd = input.value.trim();
-            input.disabled = true; 
-            
-            if (cmd === "/encerrarturno") {
-                logs.innerHTML += `<div><br>> OBSERVATORIO_9_$ ${cmd}</div>`;
-                logs.innerHTML += `<div>> SINCRONIZANDO DADOS DO SERVIDOR... <span class='cursor-blink'></span></div>`;
-                await delay(1500);
-                logs.innerHTML = logs.innerHTML.replace("<span class='cursor-blink'></span>", "");
-                
-                for(let i=1; i<=4; i++){
-                    logs.innerHTML += `<div>> COMPACTANDO BLOCO 0x0A9${i}... <span style="color:#a6d9b0">SUCESSO</span></div>`;
-                    await delay(300);
-                }
-                logs.innerHTML += `<div><br>> <span style="color:#ff8d8d; animation: blinker 1s linear infinite;">DESCONECTANDO OPERADOR...</span></div>`;
-                await delay(2000);
-                logs.innerHTML += `<div><br>> MUDANÇA DE SETOR AUTORIZADA. (O mapa da cidade iniciará aqui na próxima versão).</div>`;
-            } else {
-                logs.innerHTML += `<div>> OBSERVATORIO_9_$ ${cmd}</div>`;
-                logs.innerHTML += `<div style="color: #ff8d8d;">> ERRO: Comando inválido. Digite /encerrarturno</div>`;
-                document.getElementById(`linha-input-${idUnico}`).style.display = 'none'; // Esconde o input antigo
-                renderizarInputTerminal(logs, delay); // Gera uma nova linha de comando embaixo
-            }
-        }
-    });
-}
-    // ==========================================
-    // ESTADO: CONFIGURAÇÃO DE NOVO NPC NA FILA
-    // ==========================================
-    const npcOriginal = characterDatabase[proximoId];
-    npcAtual = { 
-        ...npcOriginal, 
-        perguntas: [...npcOriginal.perguntas] // Clona as perguntas para poder ir descartando livremente
-    };
-
-    document.getElementById("sol-npc-sprite").innerText = npcAtual.sprite;
-    document.getElementById("sol-badge-status").innerText = "IDENTIDADE RETIDA";
-
-    const itemVisor = document.getElementById("sol-item-visor");
-    const itemNome = document.getElementById("sol-item-nome");
-
-    if (npcAtual.itensTrazidos && npcAtual.itensTrazidos.length > 0) {
-        const idItem = npcAtual.itensTrazidos[0];
-        const dadosItem = itemsDatabase[idItem];
-        if (dadosItem) {
-            itemVisor.innerText = dadosItem.icone;
-            itemNome.innerText = `[ ESCANEADO ]\n${dadosItem.nome}`;
-            if (!gameState.unlockedFiles.includes(idItem)) {
-                gameState.unlockedFiles.push(idItem);
-            }
-        }
-    } else {
-        itemVisor.innerText = "";
-        itemNome.innerText = "Nenhum documento na bandeja";
-    }
-
-    document.getElementById("sol-dialogo-texto").innerText = `"${npcAtual.dialogoInicial}"`;
-
-    // Renderiza o primeiro estado do painel dinâmico (com as duas primeiras perguntas)
-    renderizarPainelDinamico();
-
-
-// 4. Controla as renderizações com base no repositório de perguntas restante
 function renderizarPainelDinamico() {
     const painel = document.getElementById("sol-painel-interacao");
     painel.innerHTML = "";
 
-    // Se ainda restarem perguntas em quantidade par (de 2 em 2)
     if (npcAtual.perguntas && npcAtual.perguntas.length >= 2) {
         const perguntaA = npcAtual.perguntas[0];
         const perguntaB = npcAtual.perguntas[1];
@@ -667,7 +542,6 @@ function renderizarPainelDinamico() {
         painel.appendChild(btnA);
         painel.appendChild(btnB);
     } else {
-        // Se as perguntas acabaram completamente, transmuta para os 2 botões de veredito
         const btnLiberar = document.createElement("button");
         btnLiberar.style.cssText = "background: #15331b; border: 1px solid #385e40; color: #8dff9a; padding: 10px; cursor: pointer; text-transform: uppercase; font-weight: bold; font-size: 11px; font-family: monospace; letter-spacing: 1px;";
         btnLiberar.innerText = "Liberar Portão";
@@ -683,47 +557,73 @@ function renderizarPainelDinamico() {
     }
 }
 
-// 5. Consome o par de perguntas ao clicar e renderiza a resposta e as próximas opções
 function processarEscolhaPergunta(perguntaSelecionada) {
-    // Altera a caixa com a pergunta e a respectiva resposta do NPC
     document.getElementById("sol-dialogo-texto").innerText = `Você: ${perguntaSelecionada.textoBotao}\n\nNPC: "${perguntaSelecionada.respostaNpc}"`;
-
-    // DESCARTA O PAR INTEIRO: Remove de vez os dois primeiros elementos do repositório
     npcAtual.perguntas.splice(0, 2);
-
-    // Atualiza a tela de 2 botões (se sobrou outro par, mostra as perguntas; se zerou, mostra Liberar/Mandar)
     renderizarPainelDinamico();
 }
 
-// 6. Finaliza a tomada de decisão do NPC e roda o tempo de transição da fila
 function processarDecisaoFinal(acao) {
     const painel = document.getElementById("sol-painel-interacao");
-    painel.innerHTML = ""; // Limpa os dois botões instantaneamente para impedir cliques acidentais
+    painel.innerHTML = "";
 
     if (acao === "liberar") {
-        document.getElementById("sol-dialogo-texto").innerText = `[ PORTÃO MAGNETICO ABERTO ]\n\nNPC: "${npcAtual.reacaoAceito}"`;
-        
-        gameState.insideObservatory.push({
-            id: npcAtual.id,
-            nome: npcAtual.nomeReal,
-            sprite: npcAtual.sprite,
-            seguranca: npcAtual.seguranca
-        });
+        document.getElementById("sol-dialogo-texto").innerText = `[ PORTÃO MAGNÉTICO ABERTO ]\n\nNPC: "${npcAtual.reacaoAceito}"`;
+        gameState.insideObservatory.push({ id: npcAtual.id, nome: npcAtual.nomeReal, sprite: npcAtual.sprite, seguranca: npcAtual.seguranca });
     } else {
         document.getElementById("sol-dialogo-texto").innerText = `[ DIRETRIZ DE ACESSO NEGADA ]\n\nNPC: "${npcAtual.reacaoRecusado}"`;
         gameState.rejectedOutside.push(npcAtual.id);
     }
 
-    // Exclui o personagem processado do topo do array da fila
-    gameState.filaDoDia.shift(); 
-
-    // Tempo de transição antes do painel ler o próximo elemento da fila (ou inicializar o terminal)
-    setTimeout(() => {
-        chamarProximoNpc();
-    }, 3200);
+    gameState.filaDoDia.shift();
+    setTimeout(chamarProximoNpc, 3200);
 }
 
-/* ==========================================================================
-   GERENCIADOR DE CLIQUES GLOBAIS (E-MAILS E ARQUIVOS)
-   ========================================================================== */
-// ... O resto dos ouvintes e seletores de e-mail/arquivos continuam exatamente iguais abaixo ...
+async function iniciarAnimacaoTerminal() {
+    const logs = document.getElementById("terminal-logs");
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    logs.innerHTML += "<div>> INICIALIZANDO CONSOLE CENTRAL... <span class='cursor-blink'></span></div>";
+    await delay(1200);
+    logs.innerHTML = logs.innerHTML.replace("<span class='cursor-blink'></span>", "");
+    logs.innerHTML += "<div>> CARREGANDO MÓDULOS DE VÍDEO... [ <span style='color:#a6d9b0'>OK</span> ]</div>";
+    await delay(400);
+    logs.innerHTML += "<div>> PORTÕES MAGNÉTICOS... [ <span style='color:#ff8d8d'>TRANCADOS</span> ]</div>";
+    await delay(600);
+    logs.innerHTML += "<div><br>> Expediente externo encerrado. Aguardando comando de consolidação de turno.</div>";
+    renderizarInputTerminal(logs, delay);
+}
+
+function renderizarInputTerminal(logs, delay) {
+    const idUnico = Date.now();
+    logs.innerHTML += `<div style="display: flex; margin-top: 15px; align-items: center;" id="linha-input-${idUnico}">
+        <span>OBSERVATORIO_9_$ </span>
+        <input type="text" id="terminal-input-${idUnico}" autofocus autocomplete="off" spellcheck="false" style="background: transparent; border: none; color: #8dff9a; font-family: monospace; font-size: 14px; outline: none; margin-left: 10px; flex: 1;">
+    </div>`;
+
+    const input = document.getElementById(`terminal-input-${idUnico}`);
+    document.getElementById("tela-terminal").onclick = () => input.focus();
+    input.focus();
+
+    input.addEventListener("keydown", async (e) => {
+        if (e.key === "Enter") {
+            const cmd = input.value.trim();
+            input.disabled = true;
+            if (cmd === "/encerrarturno") {
+                logs.innerHTML += `<div><br>> OBSERVATORIO_9_$ ${cmd}</div>`;
+                logs.innerHTML += `<div>> SINCRONIZANDO DADOS DO SERVIDOR...</div>`;
+                await delay(1500);
+                for(let i=1; i<=4; i++){
+                    logs.innerHTML += `<div>> COMPACTANDO BLOCO 0x0A9${i}... <span style="color:#a6d9b0">SUCESSO</span></div>`;
+                    await delay(300);
+                }
+                logs.innerHTML += `<div><br>> <span style="color:#ff8d8d;">DESCONECTANDO OPERADOR...</span></div>`;
+            } else {
+                logs.innerHTML += `<div>> OBSERVATORIO_9_$ ${cmd}</div>`;
+                logs.innerHTML += `<div style="color: #ff8d8d;">> ERRO: Comando inválido. Digite /encerrarturno</div>`;
+                document.getElementById(`linha-input-${idUnico}`).style.display = 'none';
+                renderizarInputTerminal(logs, delay);
+            }
+        }
+    });
+}
